@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汽配SKU查询 & eBay英文文案指令生成</title>
+    <style>
+        :root {
+            --primary: #1a56db;
+            --primary-dark: #1e40af;
+            --primary-light: #e8f0fe;
+            --success: #059669;
+            --success-light: #ecfdf5;
+            --warning: #d97706;
+            --warning-light: #fffbeb;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-focus: #3b82f6;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-xs: 6px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Menlo', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+            background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .header {
+            background: var(--card-bg); border-bottom: 1px solid var(--border);
+            padding: 0 24px; position: sticky; top: 0; z-index: 100;
+            box-shadow: var(--shadow-sm); backdrop-filter: blur(10px);
+        }
+        .header-inner {
+            max-width: 1200px; margin: 0 auto; display: flex; align-items: center;
+            justify-content: space-between; height: 60px; gap: 16px;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: var(--primary); white-space: nowrap; text-decoration: none; letter-spacing: -0.01em; }
+        .logo-icon { width: 38px; height: 38px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.2rem; flex-shrink: 0; }
+        .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+        .db-count { font-size: 0.8rem; color: var(--text-secondary); background: var(--bg); padding: 6px 12px; border-radius: 20px; white-space: nowrap; font-weight: 500; border: 1px solid var(--border); }
+        .db-count strong { color: var(--primary); font-weight: 700; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; font-size: 0.8rem; font-weight: 600; border-radius: var(--radius-xs); border: 1.5px solid transparent; cursor: pointer; transition: var(--transition); white-space: nowrap; letter-spacing: 0.01em; font-family: inherit; outline: none; text-decoration: none; user-select: none; }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: var(--shadow-sm); }
+        .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); box-shadow: var(--shadow-md); }
+        .btn-outline { background: var(--card-bg); color: var(--primary); border-color: var(--border); }
+        .btn-outline:hover { background: var(--primary-light); border-color: var(--primary); box-shadow: var(--shadow); }
+        .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+        .btn-success:hover { background: #047857; border-color: #047857; box-shadow: var(--shadow-md); }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; }
+
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 20px 24px 40px; }
+
+        .search-section { background: var(--card-bg); border-radius: var(--radius); padding: 24px 28px; box-shadow: var(--shadow); margin-bottom: 20px; border: 1px solid var(--border); }
+        .search-section h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; color: var(--text); letter-spacing: -0.01em; }
+        .search-section .subtitle { font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 18px; }
+        .search-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .search-input-wrapper { flex: 1; min-width: 220px; position: relative; }
+        .search-input-wrapper .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1rem; pointer-events: none; }
+        .search-input { width: 100%; padding: 12px 14px 12px 40px; font-size: 0.95rem; border: 2px solid var(--border); border-radius: var(--radius-sm); background: var(--card-bg); color: var(--text); transition: var(--transition); font-family: inherit; outline: none; letter-spacing: 0.02em; }
+        .search-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); background: #fff; }
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+        .search-hint .hint-sku { display: inline-block; background: var(--primary-light); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.7rem; cursor: pointer; transition: var(--transition); border: 1px solid transparent; font-family: var(--font-mono); letter-spacing: 0.03em; }
+        .search-hint .hint-sku:hover { border-color: var(--primary); background: #dbeafe; }
+
+        .toast-container { position: fixed; top: 80px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .toast { padding: 12px 18px; border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 600; color: #fff; box-shadow: var(--shadow-lg); animation: slideInRight 0.35s ease-out, fadeOut 0.3s ease-in forwards; animation-delay: 0s, 2.5s; pointer-events: auto; max-width: 400px; }
+        .toast-success { background: var(--success); }
+        .toast-error { background: var(--danger); }
+        .toast-info { background: var(--primary); }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateY(-10px); } }
+
+        .results-container { display: none; gap: 20px; flex-direction: column; animation: fadeInUp 0.4s ease-out; }
+        .results-container.active { display: flex; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .product-card { background: var(--card-bg); border-radius: var(--radius); padding: 24px 28px; box-shadow: var(--shadow); border: 1px solid var(--border); border-left: 4px solid var(--primary); }
+        .product-card .sku-badge { display: inline-block; background: var(--primary); color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em; font-family: var(--font-mono); margin-bottom: 10px; }
+        .product-card h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+        .product-details { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 16px; }
+        .product-detail-item { display: flex; flex-direction: column; gap: 2px; }
+        .product-detail-item .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 600; }
+        .product-detail-item .value { font-size: 0.9rem; font-weight: 500; color: var(--text); word-break: break-word; }
+        .compatibility-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+        .compatibility-tag { background: #f0f9ff; color: #0369a1; padding: 3px 10px; border-radius: 14px; font-size: 0.75rem; font-weight: 500; border: 1px solid #bae6fd; white-space: nowrap; }
+
+        .prompt-card { background: #1e293b; border-radius: var(--radius); padding: 24px 28px; box-shadow: var(--shadow-lg); border: 1px solid #334155; position: relative; }
+        .prompt-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+        .prompt-card-header h3 { color: #e2e8f0; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; letter-spacing: 0.01em; }
+        .prompt-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .prompt-content { background: #0f172a; border-radius: var(--radius-sm); padding: 20px 22px; color: #cbd5e1; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.7; white-space: pre-wrap; word-break: break-word; max-height: 600px; overflow-y: auto; border: 1px solid #334155; letter-spacing: 0.01em; }
+        .prompt-content::-webkit-scrollbar { width: 6px; }
+        .prompt-content::-webkit-scrollbar-track { background: #1e293b; border-radius: 3px; }
+        .prompt-content::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .btn-copy { background: #334155; color: #e2e8f0; border: 1px solid #475569; }
+        .btn-copy:hover { background: #475569; border-color: #64748b; color: #fff; }
+        .btn-copy.copied { background: var(--success); border-color: var(--success); color: #fff; }
+
+        .empty-state { text-align: center; padding: 48px 24px; background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border: 2px dashed var(--border); display: none; }
+        .empty-state.active { display: block; }
+        .empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+        .empty-state h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 6px; }
+        .empty-state p { color: var(--text-secondary); font-size: 0.875rem; max-width: 400px; margin: 0 auto; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 200; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out; }
+        .modal-overlay.hidden { display: none; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal { background: var(--card-bg); border-radius: var(--radius); padding: 28px; max-width: 560px; width: 90%; box-shadow: var(--shadow-lg); animation: scaleIn 0.25s ease-out; max-height: 85vh; overflow-y: auto; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; }
+        .modal .form-group { margin-bottom: 14px; }
+        .modal label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+        .modal .file-input-area { border: 2px dashed var(--border); border-radius: var(--radius-sm); padding: 28px; text-align: center; cursor: pointer; transition: var(--transition); background: #fafbfc; }
+        .modal .file-input-area:hover { border-color: var(--primary); background: var(--primary-light); }
+        .modal .file-input-area input[type="file"] { display: none; }
+        .modal .file-input-area .upload-icon { font-size: 2.5rem; margin-bottom: 8px; }
+        .modal .file-input-area p { font-size: 0.85rem; color: var(--text-secondary); }
+        .modal .import-status { margin-top: 10px; font-size: 0.85rem; font-weight: 600; padding: 10px 14px; border-radius: var(--radius-xs); display: none; }
+        .modal .import-status.success { display: block; background: var(--success-light); color: var(--success); border: 1px solid #a7f3d0; }
+        .modal .import-status.error { display: block; background: var(--danger-light); color: var(--danger); border: 1px solid #fecaca; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
+
+        @media (max-width: 768px) {
+            .header-inner { height: auto; padding: 12px 0; flex-wrap: wrap; gap: 8px; }
+            .search-section { padding: 18px 16px; }
+            .search-section h1 { font-size: 1.2rem; }
+            .search-row { flex-direction: column; }
+            .search-input { font-size: 0.9rem; padding: 11px 12px 11px 36px; }
+            .product-card { padding: 16px; }
+            .product-details { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .prompt-card { padding: 16px; }
+            .prompt-content { font-size: 0.7rem; padding: 14px; max-height: 400px; }
+            .prompt-card-header { flex-direction: column; align-items: flex-start; }
+            .toast-container { right: 10px; top: 70px; }
+            .toast { max-width: 280px; font-size: 0.8rem; }
+        }
+        @media (max-width: 400px) {
+            .product-details { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-inner">
+        <a href="#" class="logo" onclick="location.reload();return false;">
+            <div class="logo-icon">🔧</div>
+            <span>AutoParts SKU Tool</span>
+        </a>
+        <div class="header-actions">
+            <span class="db-count" id="dbCount">📦 数据库: <strong>0</strong> 条SKU</span>
+            <button class="btn btn-outline btn-sm" onclick="openImportModal()">📥 导入CSV</button>
+            <button class="btn btn-outline btn-sm" onclick="exportDatabase()">📤 导出数据</button>
+            <button class="btn btn-outline btn-sm" onclick="importBackup()">↩️ 导入备份</button>
+            <button class="btn btn-outline btn-sm" onclick="resetDatabase()">🔄 重置</button>
+            <input type="file" id="backupFileInput" accept=".json" style="display:none" onchange="handleBackupFile(event)">
+        </div>
+    </div>
+</header>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="main-container">
+    <section class="search-section">
+        <h1>🔍 SKU查询 & eBay英文文案指令生成</h1>
+        <p class="subtitle">输入SKU，自动提取信息并生成eBay英文文案提示指令（优点+简短语句，3个文案）</p>
+        <div class="search-row">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔎</span>
+                <input type="text" class="search-input" id="skuInput" placeholder="输入SKU，如 FL-001、MC-002 ..." autocomplete="off" autofocus onkeydown="if(event.key==='Enter')searchSKU();">
+            </div>
+            <button class="btn btn-primary" onclick="searchSKU()" id="searchBtn"><span>🔍</span> 查询生成</button>
+        </div>
+        <div class="search-hint">
+            💡 试试这些SKU：
+            <span class="hint-sku" onclick="quickSearch('FL-001')">FL-001</span>
+            <span class="hint-sku" onclick="quickSearch('MC-002')">MC-002</span>
+            <span class="hint-sku" onclick="quickSearch('RW-003')">RW-003</span>
+            <span class="hint-sku" onclick="quickSearch('SP-004')">SP-004</span>
+            <span class="hint-sku" onclick="quickSearch('DP-005')">DP-005</span>
+        </div>
+    </section>
+
+    <div class="empty-state active" id="emptyState">
+        <div class="empty-icon">📋</div>
+        <h3>请搜索SKU或导入您的数据</h3>
+        <p>在上方输入SKU编号查询，或点击“导入CSV”上传您的产品表格数据。<br>数据自动保存在浏览器中，下次打开无需重新上传。</p>
+    </div>
+
+    <div class="results-container" id="resultsContainer">
+        <div class="product-card" id="productCard"></div>
+        <div class="prompt-card" id="promptCard">
+            <div class="prompt-card-header">
+                <h3><span class="icon-ai">🤖</span> 生成的eBay英文文案指令</h3>
+                <div class="prompt-actions">
+                    <button class="btn btn-copy btn-sm" onclick="copyPrompt()" id="copyBtn">📋 复制指令</button>
+                    <button class="btn btn-outline btn-sm" onclick="downloadPrompt()" style="background:#334155;color:#e2e8f0;border-color:#475569;">💾 下载TXT</button>
+                </div>
+            </div>
+            <div class="prompt-content" id="promptContent"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="importModalOverlay">
+    <div class="modal">
+        <h3>📥 导入CSV产品数据</h3>
+        <div class="form-group">
+            <label>选择CSV文件（UTF-8编码）</label>
+            <div class="file-input-area" onclick="document.getElementById('csvFileInput').click()" id="dropZone">
+                <div class="upload-icon">📁</div>
+                <p>点击选择文件 或 拖拽CSV文件到此处</p>
+                <p class="supported-formats">支持 .csv 格式 | 首行应为列标题 | 需包含SKU列</p>
+                <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileSelect(event)">
+            </div>
+            <div class="import-status" id="importStatus"></div>
+        </div>
+        <div class="form-group">
+            <label>CSV列映射提示：</label>
+            <p style="font-size:0.78rem;color:var(--text-muted);">
+                系统自动识别列名（不区分大小写）：<br>
+                <code>sku, english_name, 英文名称, material, 材质, surface_finish, 表面处理, color, 颜色, fitment, 适配车型, installation_accessories, 安装配件, installation_method, 安装方式</code>
+            </p>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline btn-sm" onclick="closeImportModal()">取消</button>
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('csvFileInput').click()">📁 选择文件</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const DEFAULT_PRODUCTS = [
+            {
+                sku: 'FL-001',
+                english_name: 'Front Bumper Lip Spoiler',
+                material: 'ABS Plastic',
+                surface_finish: 'Glossy Black',
+                color: 'Gloss Black',
+                fitment: 'Universal fit for most sedans and coupes',
+                installation_accessories: 'Includes 3M adhesive tape, self-tapping screws, and mounting brackets',
+                installation_method: '3M tape & screw-on (drilling required)'
+            },
+            {
+                sku: 'MC-002',
+                english_name: 'Side Mirror Cover Cap',
+                material: 'Carbon Fiber Pattern ABS',
+                surface_finish: 'Carbon Fiber Texture',
+                color: 'Carbon Fiber Black',
+                fitment: 'Compatible with various compact SUVs and hatchbacks',
+                installation_accessories: 'Comes with double-sided tape and installation manual',
+                installation_method: 'Adhesive tape (no drilling)'
+            },
+            {
+                sku: 'RW-003',
+                english_name: 'Rear Window Louver',
+                material: 'High-impact Polypropylene',
+                surface_finish: 'Matte Black',
+                color: 'Matte Black',
+                fitment: 'Designed for muscle cars and sports coupes',
+                installation_accessories: 'Includes mounting clips, alcohol wipes, and assembly guide',
+                installation_method: 'Clip-on with adhesive promoter (no permanent modification)'
+            },
+            {
+                sku: 'SP-004',
+                english_name: 'Universal Splash Guards Mud Flaps',
+                material: 'Flexible Rubber',
+                surface_finish: 'Textured Black',
+                color: 'Black',
+                fitment: 'Universal fit for most trucks, SUVs, and vans',
+                installation_accessories: 'Stainless steel screws, clips, and printed instruction sheet',
+                installation_method: 'Screw-on (uses existing fender holes)'
+            },
+            {
+                sku: 'DP-005',
+                english_name: 'LED Door Sill Scuff Plate',
+                material: 'Stainless Steel + Acrylic',
+                surface_finish: 'Brushed Metal with Illuminated Logo',
+                color: 'Silver with Blue LED',
+                fitment: 'Custom fit for 4-door sedans (please check door shape)',
+                installation_accessories: 'Wiring harness, 3M adhesive pads, and detailed wiring diagram',
+                installation_method: 'Adhesive tape + 12V wiring connection'
+            }
+        ];
+
+        const STORAGE_KEY = 'autoparts_sku_database_v2';
+        let productDatabase = [];
+
+        function loadDatabase() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        productDatabase = parsed;
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('存储数据损坏，使用默认数据');
+                }
+            }
+            productDatabase = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+            saveDatabase();
+        }
+
+        function saveDatabase() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(productDatabase));
+            } catch (e) {
+                showToast('⚠️ 存储空间不足，请清理部分数据', 'error');
+            }
+        }
+
+        function exportDatabase() {
+            if (productDatabase.length === 0) {
+                showToast('⚠️ 数据库为空，无法导出', 'error');
+                return;
+            }
+            const blob = new Blob([JSON.stringify(productDatabase, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `autoparts_backup_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('✅ 数据库已导出为 JSON 文件', 'success');
+        }
+
+        function importBackup() {
+            document.getElementById('backupFileInput').click();
+        }
+
+        function handleBackupFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!Array.isArray(data)) throw new Error('格式错误');
+                    if (data.length === 0) {
+                        showToast('⚠️ 备份文件无数据', 'error');
+                        return;
+                    }
+                    if (confirm(`将用备份数据覆盖当前数据库（${data.length} 条记录）？`)) {
+                        productDatabase = data;
+                        saveDatabase();
+                        updateDBCount();
+                        showToast(`✅ 备份已导入，共 ${data.length} 条记录`, 'success');
+                    }
+                } catch (err) {
+                    showToast('❌ 备份文件无效', 'error');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function resetDatabase() {
+            if (confirm('确定要重置数据库吗？这将恢复默认示例数据，您导入的数据将丢失。')) {
+                productDatabase = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+                saveDatabase();
+                updateDBCount();
+                clearResults();
+                showToast('✅ 数据库已重置为默认示例数据', 'success');
+            }
+        }
+
+        function updateDBCount() {
+            document.getElementById('dbCount').innerHTML = '📦 数据库: <strong>' + productDatabase.length + '</strong> 条SKU';
+        }
+
+        function findProductBySKU(sku) {
+            const normalized = sku.trim().toUpperCase();
+            let product = productDatabase.find(p => p.sku.trim().toUpperCase() === normalized);
+            if (!product) product = productDatabase.find(p => p.sku.trim().toUpperCase().includes(normalized));
+            return product || null;
+        }
+
+        function searchSKU() {
+            const input = document.getElementById('skuInput');
+            const sku = input.value.trim();
+            if (!sku) { showToast('⚠️ 请输入SKU编号', 'error'); input.focus(); return; }
+            const product = findProductBySKU(sku);
+            const emptyState = document.getElementById('emptyState');
+            const resultsContainer = document.getElementById('resultsContainer');
+
+            if (!product) {
+                emptyState.classList.add('active');
+                resultsContainer.classList.remove('active');
+                emptyState.innerHTML = `<div class="empty-icon">🔍</div>
+                    <h3>未找到 SKU: <strong style="color:var(--danger);">${escapeHTML(sku)}</strong></h3>
+                    <p>请检查SKU编号是否正确，或<a href="javascript:void(0)" onclick="openImportModal()" style="color:var(--primary);font-weight:600;">导入CSV数据</a></p>
+                    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">当前数据库共 <strong>${productDatabase.length}</strong> 条SKU记录</p>`;
+                showToast('❌ 未找到该SKU', 'error');
+                return;
+            }
+
+            emptyState.classList.remove('active');
+            resultsContainer.classList.add('active');
+            renderProductCard(product);
+            renderPrompt(product);
+            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showToast('✅ 已找到 SKU: ' + product.sku + ' | 指令已生成', 'success');
+        }
+
+        function quickSearch(sku) {
+            document.getElementById('skuInput').value = sku;
+            searchSKU();
+        }
+
+        function clearResults() {
+            document.getElementById('resultsContainer').classList.remove('active');
+            document.getElementById('emptyState').classList.add('active');
+            document.getElementById('emptyState').innerHTML = `<div class="empty-icon">📋</div>
+                <h3>请搜索SKU或导入您的数据</h3>
+                <p>在上方输入SKU编号查询，或点击“导入CSV”上传您的产品表格数据。<br>数据自动保存在浏览器中，下次打开无需重新上传。</p>`;
+            document.getElementById('skuInput').value = '';
+        }
+
+        function renderProductCard(product) {
+            const card = document.getElementById('productCard');
+            const fitment = product.fitment || '';
+            const fitmentTags = fitment.split(',').map(v => v.trim()).filter(v => v.length > 0);
+
+            card.innerHTML = `
+                <span class="sku-badge">${escapeHTML(product.sku)}</span>
+                <h2>${escapeHTML(product.english_name || 'Unnamed Product')}</h2>
+                <div class="product-details" style="margin-top:16px;">
+                    <div class="product-detail-item">
+                        <span class="label">🎨 颜色 Color</span>
+                        <span class="value">${escapeHTML(product.color || 'N/A')}</span>
+                    </div>
+                    <div class="product-detail-item">
+                        <span class="label">🧱 材质 Material</span>
+                        <span class="value">${escapeHTML(product.material || 'N/A')}</span>
+                    </div>
+                    <div class="product-detail-item">
+                        <span class="label">✨ 表面处理 Surface Finish</span>
+                        <span class="value">${escapeHTML(product.surface_finish || 'N/A')}</span>
+                    </div>
+                    <div class="product-detail-item">
+                        <span class="label">🔧 安装方式</span>
+                        <span class="value">${escapeHTML(product.installation_method || 'N/A')}</span>
+                    </div>
+                    <div class="product-detail-item" style="grid-column: span 2;">
+                        <span class="label">📦 安装配件</span>
+                        <span class="value">${escapeHTML(product.installation_accessories || 'N/A')}</span>
+                    </div>
+                </div>
+                <div style="margin-top:14px;">
+                    <span class="label" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);font-weight:600;">🚗 适配车型 Fitment</span>
+                    <div class="compatibility-tags">
+                        ${fitmentTags.length > 0 ? fitmentTags.map(v => `<span class="compatibility-tag">${escapeHTML(v)}</span>`).join('') : '<span style="font-size:0.85rem;color:var(--text-muted);">N/A</span>'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPrompt(product) {
+            const instruction = generatePromptText(product);
+            document.getElementById('promptContent').textContent = instruction;
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.textContent = '📋 复制指令';
+            copyBtn.classList.remove('copied');
+            copyBtn.disabled = false;
+        }
+
+        function generatePromptText(product) {
+            const name = product.english_name || 'this product';
+            const fitment = product.fitment || 'Universal';
+            const color = product.color || 'N/A';
+            const material = product.material || 'N/A';
+            const surface = product.surface_finish || 'N/A';
+            const installMethod = product.installation_method || 'N/A';
+            const accessories = product.installation_accessories || 'N/A';
+
+            return `给 ${name} 写eBay英文介绍
+
+适配：${fitment}
+Color: ${color}
+Material: ${material}
+Surface Finish: ${surface}
+安装方式：${installMethod}
+有安装配件/安装说明书/组装说明书：${accessories}
+
+要求：
+用“优点 + 简短语句”描述的方式写3个不同的英文文案，每个文案包含3-5个优点即可。
+文案中不要出现具体车型名称（如Toyota、Honda等）和OEM编号。
+禁止使用 "durable"、"original"、"guide"、"OEM"、"official" 等侵权或敏感词汇。
+语言简洁专业，突出产品卖点。`;
+        }
+
+        function copyPrompt() {
+            const content = document.getElementById('promptContent').textContent;
+            if (!content) { showToast('⚠️ 没有可复制的内容', 'error'); return; }
+            const copyBtn = document.getElementById('copyBtn');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(content).then(() => {
+                    copyBtn.textContent = '✅ 已复制!';
+                    copyBtn.classList.add('copied');
+                    showToast('✅ 指令已复制到剪贴板！', 'success');
+                    setTimeout(() => { copyBtn.textContent = '📋 复制指令'; copyBtn.classList.remove('copied'); }, 2500);
+                }).catch(() => fallbackCopy(content, copyBtn));
+            } else {
+                fallbackCopy(content, copyBtn);
+            }
+        }
+
+        function fallbackCopy(text, copyBtn) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                copyBtn.textContent = '✅ 已复制!';
+                copyBtn.classList.add('copied');
+                showToast('✅ 指令已复制到剪贴板！', 'success');
+                setTimeout(() => { copyBtn.textContent = '📋 复制指令'; copyBtn.classList.remove('copied'); }, 2500);
+            } catch (e) {
+                showToast('❌ 复制失败，请手动选择文本复制', 'error');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function downloadPrompt() {
+            const content = document.getElementById('promptContent').textContent;
+            if (!content) { showToast('⚠️ 没有可下载的内容', 'error'); return; }
+            const sku = document.getElementById('skuInput').value.trim() || 'SKU';
+            const filename = `eBay_prompt_${sku.replace(/[^a-zA-Z0-9\-_]/g, '_')}.txt`;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('💾 指令已下载为 TXT 文件', 'success');
+        }
+
+        function openImportModal() {
+            document.getElementById('importModalOverlay').classList.remove('hidden');
+            document.getElementById('importStatus').className = 'import-status';
+            document.getElementById('importStatus').textContent = '';
+            document.getElementById('csvFileInput').value = '';
+        }
+        function closeImportModal() {
+            document.getElementById('importModalOverlay').classList.add('hidden');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const statusEl = document.getElementById('importStatus');
+            statusEl.className = 'import-status'; statusEl.textContent = '';
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                statusEl.className = 'import-status error';
+                statusEl.textContent = '❌ 请选择 .csv 格式的文件';
+                return;
+            }
+            statusEl.className = 'import-status success';
+            statusEl.textContent = '⏳ 正在解析文件...';
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = parseCSV(e.target.result);
+                    if (imported.length === 0) {
+                        statusEl.className = 'import-status error';
+                        statusEl.textContent = '❌ 未能解析到有效数据，请检查CSV格式';
+                        return;
+                    }
+                    let added = 0, updated = 0;
+                    const skuMap = new Map();
+                    productDatabase.forEach((p, idx) => skuMap.set(p.sku.trim().toUpperCase(), idx));
+                    imported.forEach(newP => {
+                        const key = newP.sku.trim().toUpperCase();
+                        if (skuMap.has(key)) {
+                            const idx = skuMap.get(key);
+                            productDatabase[idx] = { ...productDatabase[idx], ...newP };
+                            updated++;
+                        } else {
+                            productDatabase.push(newP);
+                            skuMap.set(key, productDatabase.length - 1);
+                            added++;
+                        }
+                    });
+                    saveDatabase();
+                    updateDBCount();
+                    statusEl.className = 'import-status success';
+                    statusEl.textContent = `✅ 导入成功！新增 ${added} 条，更新 ${updated} 条，当前共 ${productDatabase.length} 条`;
+                    document.getElementById('csvFileInput').value = '';
+                    setTimeout(() => {
+                        closeImportModal();
+                        showToast(`✅ 导入完成：新增 ${added} 条，更新 ${updated} 条`, 'success');
+                    }, 1500);
+                } catch (err) {
+                    statusEl.className = 'import-status error';
+                    statusEl.textContent = '❌ 解析失败：' + err.message;
+                }
+            };
+            reader.onerror = () => {
+                statusEl.className = 'import-status error';
+                statusEl.textContent = '❌ 文件读取失败';
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function parseCSV(text) {
+            const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+            if (lines.length < 2) return [];
+            const headers = parseCSVLine(lines[0]);
+            const columnMap = buildColumnMap(headers);
+            let skuIdx = columnMap.sku !== undefined ? columnMap.sku : columnMap.sku_code;
+            if (skuIdx === undefined) skuIdx = 0;
+            const results = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                if (values.length === 0) continue;
+                const sku = (values[skuIdx] || '').trim();
+                if (!sku) continue;
+                const product = {
+                    sku: sku,
+                    english_name: getValue(values, columnMap, ['english_name', '英文名称', 'product_name_en', 'name_en']),
+                    material: getValue(values, columnMap, ['material', '材质']),
+                    surface_finish: getValue(values, columnMap, ['surface_finish', '表面处理', 'finish']),
+                    color: getValue(values, columnMap, ['color', '颜色']),
+                    fitment: getValue(values, columnMap, ['fitment', '适配车型', 'compatible_vehicles', '车型']),
+                    installation_accessories: getValue(values, columnMap, ['installation_accessories', '安装配件', 'accessories']),
+                    installation_method: getValue(values, columnMap, ['installation_method', '安装方式', 'install_method'])
+                };
+                Object.keys(product).forEach(k => { if (product[k] === undefined || product[k] === null) delete product[k]; });
+                results.push(product);
+            }
+            return results;
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (inQuotes) {
+                    if (char === '"') {
+                        if (i + 1 < line.length && line[i + 1] === '"') { current += '"'; i++; }
+                        else inQuotes = false;
+                    } else current += char;
+                } else {
+                    if (char === '"') inQuotes = true;
+                    else if (char === ',') { result.push(current.trim()); current = ''; }
+                    else current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        function buildColumnMap(headers) {
+            const map = {};
+            headers.forEach((header, index) => {
+                const normalized = header.trim().toLowerCase().replace(/[\s\-_]+/g, '_');
+                map[normalized] = index;
+            });
+            return map;
+        }
+
+        function getValue(values, columnMap, keys) {
+            for (const key of keys) {
+                const norm = key.toLowerCase().replace(/[\s\-_]+/g, '_');
+                if (columnMap[norm] !== undefined) {
+                    const val = values[columnMap[norm]];
+                    if (val !== undefined && val.trim() !== '') return val.trim();
+                }
+            }
+            return '';
+        }
+
+        function setupDragDrop() {
+            const dropZone = document.getElementById('dropZone');
+            if (!dropZone) return;
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); });
+            });
+            dropZone.addEventListener('dragenter', () => { dropZone.style.borderColor = 'var(--primary)'; dropZone.style.background = 'var(--primary-light)'; });
+            dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'var(--border)'; dropZone.style.background = '#fafbfc'; });
+            dropZone.addEventListener('drop', e => {
+                dropZone.style.borderColor = 'var(--border)'; dropZone.style.background = '#fafbfc';
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const fileInput = document.getElementById('csvFileInput');
+                    const dt = new DataTransfer();
+                    dt.items.add(files[0]);
+                    fileInput.files = dt.files;
+                    handleFileSelect({ target: { files: dt.files } });
+                }
+            });
+        }
+
+        function setupModalClose() {
+            const overlay = document.getElementById('importModalOverlay');
+            overlay.addEventListener('click', e => { if (e.target === overlay) closeImportModal(); });
+            document.addEventListener('keydown', e => { if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeImportModal(); });
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function init() {
+            loadDatabase();
+            updateDBCount();
+            setupDragDrop();
+            setupModalClose();
+            setTimeout(() => document.getElementById('skuInput').focus(), 300);
+            console.log('🚗 AutoParts SKU Tool (持久化版) 已就绪');
+        }
+
+        window.searchSKU = searchSKU;
+        window.quickSearch = quickSearch;
+        window.copyPrompt = copyPrompt;
+        window.downloadPrompt = downloadPrompt;
+        window.openImportModal = openImportModal;
+        window.closeImportModal = closeImportModal;
+        window.resetDatabase = resetDatabase;
+        window.handleFileSelect = handleFileSelect;
+        window.exportDatabase = exportDatabase;
+        window.importBackup = importBackup;
+        window.handleBackupFile = handleBackupFile;
+
+        init();
+    })();
+</script>
+</body>
+</html>
